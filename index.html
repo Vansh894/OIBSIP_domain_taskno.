@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Tasks</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-page   : #F7F5F0;
+    --bg-card   : #FFFFFF;
+    --bg-input  : #F0EDE8;
+    --accent    : #C4622D;
+    --accent-dk : #9E4D22;
+    --accent-lt : #FAF0EA;
+    --success   : #2A7D5B;
+    --success-lt: #EBF7F2;
+    --warning   : #9C6B0C;
+    --warning-lt: #FEF8EC;
+    --border    : rgba(0,0,0,0.10);
+    --border-md : rgba(0,0,0,0.18);
+    --text-1    : #1A1816;
+    --text-2    : #5A5650;
+    --text-3    : #9E9890;
+    --shadow-sm : 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md : 0 4px 12px rgba(0,0,0,0.08);
+    --radius    : 12px;
+    --radius-sm : 8px;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background : var(--bg-page);
+    color      : var(--text-1);
+    min-height : 100vh;
+    padding    : 2rem 1rem 5rem;
+  }
+
+  /* ── layout ── */
+  .app { max-width: 680px; margin: 0 auto; }
+
+  /* ── header ── */
+  .header {
+    margin-bottom: 2rem;
+  }
+  .header-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+    line-height: 1.1;
+  }
+  .title em { color: var(--accent); font-style: normal; }
+
+  .date-box {
+    font-size: 12px;
+    color: var(--text-3);
+    text-align: right;
+    line-height: 1.7;
+  }
+
+  /* ── progress ── */
+  .progress-wrap {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .progress-bar-track {
+    flex: 1;
+    height: 5px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--success);
+    border-radius: 10px;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+    min-width: 0;
+  }
+  .progress-label {
+    font-size: 12px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+
+  /* ── stat pills ── */
+  .stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 0.85rem;
+    flex-wrap: wrap;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 11px;
+    border-radius: 20px;
+  }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.all      { background: #EEEAE4; color: var(--text-2); }
+  .pill.pending  { background: var(--warning-lt); color: var(--warning); }
+  .pill.done     { background: var(--success-lt); color: var(--success); }
+
+  /* ── add task card ── */
+  .add-card {
+    background : var(--bg-card);
+    border     : 1px solid var(--border);
+    border-radius: var(--radius);
+    padding    : 1.1rem 1.25rem;
+    box-shadow : var(--shadow-sm);
+    margin-bottom: 1.75rem;
+  }
+  .add-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .task-input {
+    flex: 1;
+    border : 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    padding: 10px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-1);
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    min-height: 44px;
+    max-height: 140px;
+    overflow-y: auto;
+    transition: border-color 0.15s;
+  }
+  .task-input:focus { border-color: var(--accent); background: #fff; }
+  .task-input::placeholder { color: var(--text-3); }
+
+  .add-btn {
+    height    : 44px;
+    padding   : 0 20px;
+    background: var(--accent);
+    color     : #fff;
+    border    : none;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size : 14px;
+    font-weight: 600;
+    cursor    : pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .add-btn:hover  { background: var(--accent-dk); }
+  .add-btn:active { transform: scale(0.97); }
+
+  .hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  /* ── section ── */
+  .section { margin-bottom: 2rem; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.75rem;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+  .section-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+    background: #EEEAE4;
+    padding: 1px 8px;
+    border-radius: 20px;
+  }
+
+  /* ── task list ── */
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── task card ── */
+  .task-card {
+    background : var(--bg-card);
+    border     : 1px solid var(--border);
+    border-radius: var(--radius);
+    padding    : 1rem 1.1rem;
+    box-shadow : var(--shadow-sm);
+    transition : border-color 0.15s, transform 0.15s, opacity 0.15s;
+    animation  : cardIn 0.22s ease;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .task-card:hover { border-color: var(--border-md); }
+  .task-card.is-done { border-left: 3px solid var(--success); }
+  .task-card.removing { opacity: 0; transform: scale(0.97); }
+
+  .task-row { display: flex; align-items: flex-start; gap: 12px; }
+
+  /* ── check circle ── */
+  .check {
+    width : 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border-md);
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .check:hover { border-color: var(--accent); }
+  .check.is-done {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .check.is-done::after {
+    content: '';
+    display: block;
+    width: 5px; height: 9px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+
+  /* ── task text ── */
+  .task-body { flex: 1; min-width: 0; }
+
+  .task-text {
+    font-size: 14px;
+    color: var(--text-1);
+    line-height: 1.55;
+    word-break: break-word;
+  }
+  .task-text.done {
+    text-decoration: line-through;
+    color: var(--text-3);
+  }
+  .task-meta {
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.5;
+  }
+  .meta-done { color: var(--success); }
+
+  /* ── edit input ── */
+  .edit-input {
+    width: 100%;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    padding: 7px 10px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-1);
+    outline: none;
+    margin-top: 4px;
+  }
+  .edit-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+  .btn-save {
+    padding: 5px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-save:hover { background: var(--accent-dk); }
+  .btn-cancel {
+    padding: 5px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-md);
+    background: none;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-cancel:hover { background: var(--bg-input); }
+
+  /* ── icon buttons ── */
+  .task-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-3);
+    transition: color 0.12s, background 0.12s, border-color 0.12s;
+  }
+  .icon-btn:hover { color: var(--text-1); background: var(--bg-input); border-color: var(--border); }
+  .icon-btn.del:hover { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+
+  /* ── empty state ── */
+  .empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-3);
+    font-size: 13px;
+    border: 1px dashed var(--border-md);
+    border-radius: var(--radius);
+  }
+  .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+  /* ── toast ── */
+  #toast {
+    position: fixed; bottom: 1.5rem; left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--text-1); color: #fff;
+    padding: 10px 22px; border-radius: 30px;
+    font-size: 13px; font-weight: 500;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s;
+    opacity: 0; pointer-events: none; white-space: nowrap; z-index: 999;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- header -->
+  <div class="header">
+    <div class="header-row">
+      <h1 class="title">My <em>Daily</em> Tasks</h1>
+      <div class="date-box" id="dateBox"></div>
+    </div>
+    <div class="stats">
+      <span class="pill all">   <span class="pill-dot"></span> <span id="cTotal">0</span>&nbsp;total   </span>
+      <span class="pill pending"><span class="pill-dot"></span> <span id="cPend">0</span>&nbsp;pending </span>
+      <span class="pill done">  <span class="pill-dot"></span> <span id="cDone">0</span>&nbsp;done     </span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <span class="progress-label" id="progressLabel">0% done</span>
+    </div>
+  </div>
+
+  <!-- add task -->
+  <div class="add-card">
+    <div class="add-row">
+      <textarea
+        class="task-input"
+        id="taskInput"
+        placeholder="What do you need to do today?"
+        rows="1"
+        maxlength="500"
+      ></textarea>
+      <button class="add-btn" id="addBtn">+ Add</button>
+    </div>
+    <p class="hint">Press <strong>Enter</strong> to add &nbsp;·&nbsp; <strong>Shift + Enter</strong> for a new line</p>
+  </div>
+
+  <!-- pending -->
+  <div class="section" id="secPending">
+    <div class="section-header">
+      <span class="section-title">Pending Tasks</span>
+      <div class="section-line"></div>
+      <span class="section-count" id="hPend">0</span>
+    </div>
+    <div class="task-list" id="listPending"></div>
+  </div>
+
+  <!-- completed -->
+  <div class="section" id="secDone">
+    <div class="section-header">
+      <span class="section-title">Completed Tasks</span>
+      <div class="section-line"></div>
+      <span class="section-count" id="hDone">0</span>
+    </div>
+    <div class="task-list" id="listDone"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── state ──────────────────────────────────────────────────────────────────
+let tasks    = [];
+let editingId = null;
+
+// ── date / time ────────────────────────────────────────────────────────────
+function refreshDate() {
+  const d = new Date();
+  const opts1 = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+  const opts2 = { hour:'2-digit', minute:'2-digit', hour12:true };
+  document.getElementById('dateBox').innerHTML =
+    d.toLocaleDateString(undefined, opts1) + '<br>' +
+    d.toLocaleTimeString(undefined, opts2);
+}
+refreshDate();
+setInterval(refreshDate, 30000);
+
+// ── format helpers ─────────────────────────────────────────────────────────
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth()    === now.getMonth()    &&
+    d.getDate()     === now.getDate();
+  const time = d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit', hour12:true });
+  if (isToday) return 'Today, ' + time;
+  return d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ', ' + time;
+}
+
+// ── toast ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── API calls ──────────────────────────────────────────────────────────────
+async function apiFetch(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(err.error || 'Request failed');
+  }
+  return res.json();
+}
+
+async function loadTasks() {
+  try {
+    tasks = await apiFetch('GET', '/tasks');
+    render();
+  } catch (e) {
+    toast('Could not load tasks: ' + e.message);
+  }
+}
+
+// ── actions ────────────────────────────────────────────────────────────────
+async function addTask() {
+  const inp  = document.getElementById('taskInput');
+  const text = inp.value.trim();
+  if (!text) { inp.focus(); return; }
+
+  const btn = document.getElementById('addBtn');
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  try {
+    const task = await apiFetch('POST', '/tasks', { text });
+    tasks.unshift(task);
+    inp.value = '';
+    inp.style.height = 'auto';
+    render();
+    toast('Task added!');
+  } catch (e) {
+    toast('Error: ' + e.message);
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '+ Add';
+    inp.focus();
+  }
+}
+
+async function toggleTask(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const next = !task.completed;
+  try {
+    const updated = await apiFetch('PATCH', '/tasks/' + id, { completed: next });
+    Object.assign(task, updated);
+    render();
+    toast(next ? '✓ Marked complete!' : 'Moved back to pending');
+  } catch (e) { toast('Error: ' + e.message); }
+}
+
+async function deleteTask(id) {
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.add('removing');
+  setTimeout(async () => {
+    try {
+      await apiFetch('DELETE', '/tasks/' + id);
+      tasks = tasks.filter(t => t.id !== id);
+      render();
+      toast('Task deleted');
+    } catch (e) { toast('Error: ' + e.message); render(); }
+  }, 150);
+}
+
+function startEdit(id) {
+  editingId = id;
+  render();
+  const inp = document.getElementById('edit-' + id);
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function cancelEdit() { editingId = null; render(); }
+
+async function saveEdit(id) {
+  const inp  = document.getElementById('edit-' + id);
+  const text = (inp ? inp.value : '').trim();
+  if (!text) { inp && inp.focus(); return; }
+  try {
+    const updated = await apiFetch('PATCH', '/tasks/' + id, { text });
+    const task = tasks.find(t => t.id === id);
+    if (task) Object.assign(task, updated);
+    editingId = null;
+    render();
+    toast('Task updated!');
+  } catch (e) { toast('Error: ' + e.message); }
+}
+
+// ── render ─────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return str
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function taskCardHTML(task) {
+  const isDone    = task.completed;
+  const isEditing = editingId === task.id;
+
+  const addedMeta    = 'Added: ' + fmtTime(task.addedAt);
+  const completedMeta = isDone && task.completedAt
+    ? '<span class="meta-done"> · Done: ' + fmtTime(task.completedAt) + '</span>'
+    : '';
+
+  const body = isEditing
+    ? `<input class="edit-input" id="edit-${task.id}" value="${escHtml(task.text)}" maxlength="500" />
+       <div class="edit-actions">
+         <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
+         <button class="btn-save"   onclick="saveEdit('${task.id}')">Save</button>
+       </div>`
+    : `<div class="task-text ${isDone ? 'done' : ''}">${escHtml(task.text)}</div>
+       <div class="task-meta">${addedMeta}${completedMeta}</div>`;
+
+  const actions = isEditing ? '' : `
+    <div class="task-actions">
+      <button class="icon-btn"     onclick="startEdit('${task.id}')"  title="Edit task"   aria-label="Edit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+      <button class="icon-btn del" onclick="deleteTask('${task.id}')" title="Delete task" aria-label="Delete">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </button>
+    </div>`;
+
+  return `
+    <div class="task-card ${isDone ? 'is-done' : ''}" id="card-${task.id}">
+      <div class="task-row">
+        <button class="check ${isDone ? 'is-done' : ''}"
+          onclick="toggleTask('${task.id}')"
+          title="${isDone ? 'Mark as pending' : 'Mark as complete'}"
+          aria-label="${isDone ? 'Mark as pending' : 'Mark as complete'}">
+        </button>
+        <div class="task-body">${body}</div>
+        ${actions}
+      </div>
+    </div>`;
+}
+
+function emptyHTML(msg, icon) {
+  return `<div class="empty"><div class="empty-icon">${icon}</div>${msg}</div>`;
+}
+
+function render() {
+  const pending   = tasks.filter(t => !t.completed);
+  const done      = tasks.filter(t =>  t.completed);
+  const total     = tasks.length;
+  const pct       = total ? Math.round((done.length / total) * 100) : 0;
+
+  // stats
+  document.getElementById('cTotal').textContent = total;
+  document.getElementById('cPend').textContent  = pending.length;
+  document.getElementById('cDone').textContent  = done.length;
+  document.getElementById('hPend').textContent  = pending.length;
+  document.getElementById('hDone').textContent  = done.length;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = pct + '% done';
+
+  // lists
+  document.getElementById('listPending').innerHTML = pending.length
+    ? pending.map(taskCardHTML).join('')
+    : emptyHTML('No pending tasks — you\'re all caught up!', '🎉');
+
+  document.getElementById('listDone').innerHTML = done.length
+    ? done.map(taskCardHTML).join('')
+    : emptyHTML('No completed tasks yet', '📋');
+
+  // re-focus edit input after re-render
+  if (editingId) {
+    const inp = document.getElementById('edit-' + editingId);
+    if (inp) inp.focus();
+  }
+}
+
+// ── event wiring ───────────────────────────────────────────────────────────
+document.getElementById('addBtn').addEventListener('click', addTask);
+
+document.getElementById('taskInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addTask(); }
+});
+
+document.getElementById('taskInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+});
+
+// handle Enter in edit inputs (delegated)
+document.addEventListener('keydown', function(e) {
+  if (!editingId) return;
+  if (e.key === 'Enter')  { e.preventDefault(); saveEdit(editingId); }
+  if (e.key === 'Escape') { cancelEdit(); }
+});
+
+// ── boot ───────────────────────────────────────────────────────────────────
+loadTasks();
+</script>
+</body>
+</html>
